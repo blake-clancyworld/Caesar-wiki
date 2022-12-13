@@ -1,0 +1,1 @@
+The Moments contract inherits from BaseContract721.
