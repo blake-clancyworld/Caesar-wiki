@@ -1,0 +1,1 @@
+As this contract implements no new functions from its inherited BaseContract721, if the tests results are passing for BaseContract721, the audit results can be assumed to be passing for BetaPass contracts.
