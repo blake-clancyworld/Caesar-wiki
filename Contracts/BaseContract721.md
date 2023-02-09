@@ -1,7 +1,7 @@
-**BaseContract721 & IBaseContract721**
+**ClancyERC721 & IClancyERC721**
 The basis from which all ERC721 standard Clancy World tokens are sourced from.
-# IBaseContract721
-An interface contract, meaning it has no body, but contains empty functions that have their bodies filled out in the contracts that inherit from it. Only BaseContract721 should inherit from this contract interface directly.
+# IClancyERC721
+An interface contract, meaning it has no body, but contains empty functions that have their bodies filled out in the contracts that inherit from it. Only ClancyERC721 should inherit from this contract interface directly.
 ## Functions
 **mint()**
 - The basic token creation and "minting" functionality to be interacted with by users.
@@ -16,16 +16,16 @@ An interface contract, meaning it has no body, but contains empty functions that
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-interface IBaseContract721 {
+interface IClancyERC721 {
     function mint() external returns (uint256);
 
     function mintTo(address to_) external returns (uint256);
 }
 ```
 
-# BaseContract721
+# ClancyERC721
 The foundation of all ClancyWorld's ERC721 tokens.
-This contract implements ERC721URIStorage, ERC721Enumerable, ReentrancyGuard, Ownable, Pausable, IERC721Receiver, and IBaseContract721
+This contract implements ERC721URIStorage, ERC721Enumerable, ReentrancyGuard, Ownable, Pausable, IERC721Receiver, and IClancyERC721
 
 ## ERC721URIStorage
 ERC721 token with storage based token URI management.
