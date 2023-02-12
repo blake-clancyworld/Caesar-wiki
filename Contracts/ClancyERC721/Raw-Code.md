@@ -1,16 +1,22 @@
-# IBaseContract.sol
+# IClancyERC721.sol
 ```
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-interface IBaseContract721 {
+interface IClancyERC721 {
     function mint() external returns (uint256);
 
+    function mintMany(uint256 amount_) external returns (bytes32[] memory);
+
     function mintTo(address to_) external returns (uint256);
+
+    function mintToMany(
+        address[] memory _to
+    ) external returns (bytes32[] memory);
 }
 ```
 
-# BaseContract.sol
+# ClancyERC721.sol
 ````
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
@@ -23,16 +29,16 @@ import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
-import "./IBaseContract721.sol";
+import "./IClancyERC721.sol";
 
-contract BaseContract721 is
+contract ClancyERC721 is
     ERC721URIStorage,
     ERC721Enumerable,
     ReentrancyGuard,
     Ownable,
     Pausable,
     IERC721Receiver,
-    IBaseContract721
+    IClancyERC721
 {
     using Counters for Counters.Counter;
     using Address for address;
@@ -43,6 +49,10 @@ contract BaseContract721 is
     bool private _public_mint_enabled = false;
 
     event MaxSupplyChanged(uint256);
+    event BaseURIChanged(string, string);
+    event BurnStatusChanged(bool);
+    event Withdrawn(address, uint256);
+    event PublicMintStatusChanged(bool);
 
     constructor(
         string memory name_,
@@ -70,7 +80,6 @@ contract BaseContract721 is
             "Max supply cannot be less than total supply."
         );
         _max_supply = supply;
-
         emit MaxSupplyChanged(_max_supply);
     }
 
@@ -94,6 +103,7 @@ contract BaseContract721 is
      */
     function setBaseURI(string calldata baseURI_) public onlyOwner {
         require(bytes(baseURI_).length > 0, "BaseURI can not be empty");
+        emit BaseURIChanged(_baseURILocal, baseURI_);
         _baseURILocal = baseURI_;
     }
 
@@ -121,6 +131,7 @@ contract BaseContract721 is
      */
     function setPublicMintStatus(bool open_mint) public onlyOwner {
         _public_mint_enabled = open_mint;
+        emit PublicMintStatusChanged(_public_mint_enabled);
     }
 
     /**
@@ -135,16 +146,54 @@ contract BaseContract721 is
      */
     function mint() public virtual override whenNotPaused returns (uint256) {
         require(_public_mint_enabled, "Public minting disabled.");
-        return _safeMint(msg.sender);
+        return _safeMint(_msgSender());
+    }
+
+    /**
+     * Mint many, callable by any.
+     * @param amount_ The amount of tokens to mint.
+     */
+    function mintMany(
+        uint256 amount_
+    ) public virtual override whenNotPaused returns (bytes32[] memory) {
+        require(_public_mint_enabled, "Public minting disabled.");
+        require(amount_ > 0, "Count must be greater than zero.");
+        require(
+            amount_ <= getMaxSupply() - totalSupply(),
+            "Amount exceeds max supply."
+        );
+        bytes32[] memory tokenIds = new bytes32[](amount_);
+        uint256 i = 0;
+        while (i < amount_) {
+            tokenIds[i] = bytes32(_safeMint(_msgSender()));
+            ++i;
+        }
+        return tokenIds;
     }
 
     /**
      * Mint to a specific address, callable by only owner.
      */
-    function mintTo(
-        address to
-    ) public virtual override onlyOwner returns (uint256) {
+    function mintTo(address to) public override onlyOwner returns (uint256) {
         return _safeMint(to);
+    }
+
+    /**
+     * Mint to many addresses, callable by only owner.
+     * @param to The addresses to mint to.
+     */
+    function mintToMany(
+        address[] memory to
+    ) public override onlyOwner returns (bytes32[] memory) {
+        require(to.length > 0, "No addresses to mint to.");
+        bytes32[] memory tokenIds = new bytes32[](to.length);
+        uint256 i = 0;
+        while (i < to.length) {
+            require(to[i] != address(0), "Invalid address.");
+            tokenIds[i] = bytes32(_safeMint(to[i]));
+            i++;
+        }
+        return tokenIds;
     }
 
     /**
@@ -168,6 +217,7 @@ contract BaseContract721 is
      */
     function setBurnStatus(bool status) public onlyOwner {
         _burn_enabled = status;
+        emit BurnStatusChanged(_burn_enabled);
     }
 
     /**
@@ -214,7 +264,8 @@ contract BaseContract721 is
      */
     function withdraw() public onlyOwner {
         uint256 balance = address(this).balance;
-        payable(msg.sender).transfer(balance);
+        payable(_msgSender()).transfer(balance);
+        emit Withdrawn(_msgSender(), balance);
     }
 
     /**
@@ -269,4 +320,5 @@ contract BaseContract721 is
     }
     //#endregion
 }
+
 ```
