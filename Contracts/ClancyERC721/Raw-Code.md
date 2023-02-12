@@ -19,7 +19,7 @@ interface IClancyERC721 {
 
 # ClancyERC721.sol
 ````
-// SPDX-License-Identifier: MIT
+/// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
@@ -44,16 +44,19 @@ contract ClancyERC721 is
     using Counters for Counters.Counter;
     using Address for address;
     Counters.Counter internal _token_id_counter;
+
     uint256 private _max_supply;
     string private _baseURILocal;
     bool private _burn_enabled = false;
     bool private _public_mint_enabled = false;
+    uint128 private _mint_many_limit = 20;
 
     event MaxSupplyChanged(uint256);
     event BaseURIChanged(string, string);
     event BurnStatusChanged(bool);
     event Withdrawn(address, uint256);
     event PublicMintStatusChanged(bool);
+    event MintManyLimitChanged(uint128);
 
     constructor(
         string memory name_,
@@ -143,6 +146,14 @@ contract ClancyERC721 is
     }
 
     /**
+     * Set the _mint_many_max value.
+     */
+    function setMintManyMax(uint128 max) public onlyOwner {
+        _mint_many_limit = max;
+        emit MintManyLimitChanged(_mint_many_limit);
+    }
+
+    /**
      * Mint function, callable by any.
      */
     function mint() public virtual override whenNotPaused returns (uint256) {
@@ -159,6 +170,7 @@ contract ClancyERC721 is
     ) public virtual override whenNotPaused returns (bytes32[] memory) {
         require(_public_mint_enabled, "Public minting disabled.");
         require(amount_ > 0, "Count must be greater than zero.");
+        require(amount_ <= _mint_many_limit, "Amount exceeds mint limit.");
         require(
             amount_ <= getMaxSupply() - totalSupply(),
             "Amount exceeds max supply."
