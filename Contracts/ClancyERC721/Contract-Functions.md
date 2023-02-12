@@ -167,6 +167,34 @@ Requires that public minting be enabled and the contract not be paused.
 Calls the _safeMint function.
 - **Note:** There is no requirement to send funds to mint. If we allow public access to our chain, or our network is penetrated and the blockchain is accessed, an address could mint all remaining tokens.
 
+# mintMany
+```
+    /**
+     * Mint many, callable by any.
+     * @param amount_ The amount of tokens to mint.
+     */
+    function mintMany(
+        uint256 amount_
+    ) public virtual override whenNotPaused returns (bytes32[] memory) {
+        require(_public_mint_enabled, "Public minting disabled.");
+        require(amount_ > 0, "Count must be greater than zero.");
+        require(
+            amount_ <= getMaxSupply() - totalSupply(),
+            "Amount exceeds max supply."
+        );
+        bytes32[] memory tokenIds = new bytes32[](amount_);
+        uint256 i = 0;
+        while (i < amount_) {
+            tokenIds[i] = bytes32(_safeMint(_msgSender()));
+            ++i;
+        }
+        return tokenIds;
+    }
+```
+The publicly accessible token minting function, to mint more than 1.
+Calls the _safeMint function, for the input amount of times.
+- **Note:** There is no requirement to send funds to mint. If we allow public access to our chain, or our network is penetrated and the blockchain is accessed, an address could mint all remaining tokens.
+
 # mintTo
 ```
 /**
@@ -182,6 +210,32 @@ An owner only callable minting function.
 This functions enables to mint tokens on demand for rewards, giveaways, challenges, etc.
 Calls the _safeMint function.
 - **Note**: There is no requirement to send funds to mint. If we allow public access to our chain, or our network is penetrated and the blockchain is accessed, an address could mint all remaining tokens.
+
+# mintToMany
+```
+    /**
+     * Mint to many addresses, callable by only owner.
+     * @param to The addresses to mint to.
+     */
+    function mintToMany(
+        address[] memory to
+    ) public override onlyOwner returns (bytes32[] memory) {
+        require(to.length > 0, "No addresses to mint to.");
+        bytes32[] memory tokenIds = new bytes32[](to.length);
+        uint256 i = 0;
+        while (i < to.length) {
+            require(to[i] != address(0), "Invalid address.");
+            tokenIds[i] = bytes32(_safeMint(to[i]));
+            i++;
+        }
+        return tokenIds;
+    }
+```
+An owner only callable minting function.
+This functions enables to mint 1 token to multiple users, on demand for rewards, giveaways, challenges, etc.
+Calls the _safeMint function.
+- **Note**: There is no requirement to send funds to mint. If we allow public access to our chain, or our network is penetrated and the blockchain is accessed, an address could mint all remaining tokens.
+
 
 # _safeMint
 ```
