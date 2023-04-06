@@ -253,18 +253,6 @@ Calls our defined _baseURI that overrides the default ERC721 _baseURI.
 ```
 Gets the max supply.
 
-## _baseURI
-```
-    /**
-     * @dev Returns the base URI for this contract.
-     * @return A string representing the base URI.
-     */
-    function _baseURI() internal view virtual override returns (string memory) {
-        return _baseURILocal;
-    }
-```
-Overrides ERC721s function.
-
 ## getTokenIdCounter
 ```
     /**
