@@ -1,128 +1,74 @@
-# setMomentsContract
+# Constructor
 ```
-/**
- * Set the contract for the moments contained within the pack.
- * @param momentsContract The address of the moments contract.
- */
-function setMomentsContract(address momentsContract) public onlyOwner {
-    require(
-        momentsContract != address(0),
-        "Moments contract cannot be the zero address."
-    );
-    require(momentsContract.isContract(), "Address is not a contract.");
-    _momentsContract = Moments(payable(momentsContract));
-}
+  constructor(
+        string memory name_,
+        string memory symbol_,
+        uint256 max_supply_,
+        string memory base_uri_
+    ) ClancyERC721(name_, symbol_, max_supply_, base_uri_) {}
 ```
-Sets the Moment contract for the Pack.
-- **Notes:**
-  - Only one moment contract can be set at a time.
-  - Packs in the same series can be set to different Moments contracts.
+No special additions to ClancyERC721.
 
-# getMomentsContract
+# Functions
+## setCaseContract
 ```
-  /**
-   * Get the moments contract.
-   */
-  function getMomentsContract() public view returns (Moments) {
-      return _momentsContract;
-  }
-```
-Returns the private member attribute **_momentsContract**.
-
-# setMomentsPerPack
-```
-/**
- * Set how many moments are contained (minted) within the pack.
- * @param moments_per_pack The number of moments per pack.
- */
-function setMomentsPerPack(uint256 moments_per_pack) public onlyOwner {
-    require(
-        moments_per_pack > 0,
-        "Moments per pack must be greater than zero."
-    );
-    _moments_per_pack = moments_per_pack;
-}
-```
-Sets the amount of moments to be minted to the address burning and opening their pack.
-By default this is set to 3.
-
-- **Notes**:
-  - There is no maximum on the amount of moments that can be minted, but there is a minimum of 0.
-
-# getMomentsPerPack
-```
- /**
-   * Returns the amount of moments created when a pack is opened.
-   */
-  function getMomentsPerPack() public view returns (uint256) {
-      return _moments_per_pack;
-  }
-```
-Returns the private member attribute _moments_per_pack.
-
-# mintMany
-```
-/**
- * Mint many tokens.
- * @param amount The amount of tokens to mint.
- */
-function mintMany(uint256 amount) external {
-    require(
-        _momentsContract != Moments(payable(address(0))),
-        "Moments contract not set."
-    );
-    require(amount > 0, "Amount must be greater than zero.");
-    require(
-        amount <= getMaxSupply() - totalSupply(),
-        "Amount must be less than or equal to the remaining supply."
-    );
-    for (uint256 i = 0; i < amount; i++) {
-        mint();
+    /**
+     * @dev Sets the validity of a Case contract.
+     *
+     * Requirements:
+     * - The Case contract address cannot be the zero address.
+     * - The address provided must be a contract address.
+     * - Can only be called by the owner of the contract.
+     *
+     * @param caseContract The address of the Case contract to set.
+     * @param isValid A boolean value indicating the validity of the Case contract.
+     */
+    function setCaseContract(
+        address caseContract,
+        bool isValid
+    ) public onlyOwner {
+        if (caseContract == address(0)) revert CaseContractInvalid();
+        if (!caseContract.isContract()) revert CaseContractInvalid();
+        _caseContracts[caseContract] = isValid;
+        emit CaseContractSet(caseContract, isValid);
     }
-}
 ```
-An externally callable function to mint multiple tokens.
-- **Note:**
-  - There is no requirement to send funds to mint. If we allow public access to our chain, or our network is penetrated and the blockchain is accessed, an address could mint all remaining tokens.
+Sets the case contract.
+Allows multiple case contracts i.e. HeatinUp, Swishin, etc.
 
-# openPack
+## isCaseContract
 ```
-/**
- * Open a pack and mint the moments contained within.
- * Burns the pack token, returns _moments_per_pack moments.
- * @param tokenId The token id of the pack to open and burn.
- */
-function openPack(uint256 tokenId)
-    public
-    whenNotPaused
-    returns (uint256[] memory)
-{
-    require(
-        _momentsContract != Moments(payable(address(0))),
-        "Moments contract not set."
-    );
-    require(_exists(tokenId), "The pack does not exist.");
-
-    require(
-        _isApprovedOrOwner(_msgSender(), tokenId),
-        "Ownable: Caller is not owner or approved."
-    );
-
-    burn(tokenId);
-
-    uint256[] memory minted_moments = new uint256[](_moments_per_pack);
-    for (uint256 i = 0; i < _moments_per_pack; i++) {
-        minted_moments[i] = _momentsContract.mint();
-        _momentsContract.safeTransferFrom(
-            address(this),
-            msg.sender,
-            minted_moments[i]
-        );
+    /**
+     * @dev Checks if an address is a Case contract.
+     *
+     * @param caseContract The address to check.
+     * @return True if the address is a Case contract, false otherwise.
+     */
+    function isCaseContract(address caseContract) public view returns (bool) {
+        return _caseContracts[caseContract];
     }
-
-    emit PackOpened(tokenId, msg.sender);
-
-    return minted_moments;
-}
 ```
-The meat and potatoes of the contract: opening/burning a pack and receiving Moment tokens.
+Public function for checking whether an address is a valid case contract.
+
+## mint
+```
+    /**
+     * @dev Mints a new Series 1 case.
+     *
+     * Requirements:
+     * - The contract must not be paused.
+     * - The function can only be called by the Case contract.
+     *
+     * @return The ID of the token that was minted.
+     */
+    function mint()
+        public
+        override
+        whenNotPaused
+        onlyCaseContract
+        returns (uint256)
+    {
+        return super.mint();
+    }
+```
+Overrides ClancyERC721 base minting function. Required for use of onlyCaseContract modifier.
