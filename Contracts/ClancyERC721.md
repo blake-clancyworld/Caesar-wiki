@@ -37,21 +37,13 @@ interface IClancyERC721 {
 
 # ClancyERC721
 The foundation of all ClancyWorld's ERC721 tokens.
-This contract implements     Ownable,
-    ERC721Enumerable,
-    Pausable,
-    IClancyERC721,
-    IERC721Receiver
-## ERC721URIStorage
-ERC721 token with storage based token URI management.
+This contract implements Ownable, ERC721Enumerable, Pausable, IClancyERC721, and IERC721Receiver.
 
 ## ERC721Enumerable
-This implements an optional extension of {ERC721} defined in the EIP that adds enumerability of all the token ids in the contract as well as all token ids owned by each account.
-- Note: This is a gas heavy extension. It is helpful for easy identification of a users owned assets.
-
-## ReentrancyGuard
-Contract module that helps prevent reentrant calls to a function.
-https://hackernoon.com/hack-solidity-reentrancy-attack
+This implements an optional extension of ERC721 defined in the EIP that adds enumerability of all the token ids in the contract as well as all token ids owned by each account.
+### Notes
+- This is a gas heavy extension.
+- It is helpful for easy identification of a users owned assets.
 
 ## Ownable
 Contract module which provides a basic access control mechanism, where there is an account (an owner) that can be granted exclusive access to specific functions.
@@ -64,13 +56,3 @@ This is not inherently a failsafe.
 
 ## IERC721Receiver
 Interface for any contract that wants to support safeTransfers from ERC721 asset contracts. This is essentially a way to for the contract to own assets, and allow "hard" staking of assets. Without this function, any assets sent to the contract (marking the contract as the asset owner) would be lost.
-
-## Fallback Funtions
-**recieve**
-```
-/**
- * Fallback Recieve function
- */
-receive() external payable {}
-```
-The receive function is executed on a call to the contract with empty calldata. This is the function that is executed on plain Ether transfers (e.g. via .send() or .transfer()). If no such function exists, but a payable fallback function exists, the fallback function will be called on a plain Ether transfer. If neither a receive Ether nor a payable fallback function is present, the contract cannot receive Ether through a transaction that does not represent a payable function call and throws an exception.
