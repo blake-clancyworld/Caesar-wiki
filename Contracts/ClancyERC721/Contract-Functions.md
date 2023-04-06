@@ -300,3 +300,4 @@ Gets the token id counter.
         return tokenId;
     }
 ```
+Internal minting wrapper.
