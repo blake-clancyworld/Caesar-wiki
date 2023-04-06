@@ -1,31 +1,15 @@
-# constructor
-
-```
-constructor(
-    string memory name_,
-    string memory symbol_,
-    string memory baseURI_,
-    uint256 max_supply_
-) ERC721(name_, symbol_) {
-    require(bytes(name_).length > 0, "Name cannot be empty.");
-    require(bytes(symbol_).length > 0, "Symbol cannot be empty.");
-    require(bytes(baseURI_).length > 0, "BaseURI cannot be empty.");
-    require(max_supply_ > 0, "Max supply cannot be zero.");
-    _max_supply = max_supply_;
-    _baseURILocal = baseURI_;
-}
-```
-
-The constructor is overridden by all inherited child contracts.Child contracts can specify additional input parameters.
-
-## Parameters
+# **Parameters**
 **name_**
 The name of the contract.
 
 **symbol_**
 A short string, a reduced and sometimes vowel-less abbreviation of the contract name.
 
-**baseURI_**
+**max_supply_**
+The maximum supply of the token
+_Can_ be changed later.
+
+**baseURILocal_**
 The base URI of the collection. If this is set to anything other than an empty string all tokens in the collection will have this string prefixed to their own unique URI
 _Example 1:_
 - baseURI_ is ""
@@ -39,308 +23,279 @@ _Example 2:_
   - Token 2 URI is set to "2"
   - Token 2 full URI is "clancyworld.com/2"
 
-**max_supply_**
-The maximum supply of the token
-_Can_ be changed later.
-
-# setMaxSupply
-
+-----------------------------
+# **Constructor**
 ```
-/**
- * Set max supply to the input value.
- * Cannot be lower than the current total supply.
- * @param supply The value to set the max supply to.
- */
-function setMaxSupply(uint256 supply) public onlyOwner {
-    require(supply > 0, "Max supply cannot be zero.");
-    require(
-        supply >= totalSupply(),
-        "Max supply cannot be less than total supply."
-    );
-    _max_supply = supply;
+    constructor(
+        string memory name_,
+        string memory symbol_,
+        uint256 max_supply_,
+        string memory baseURILocal_
+    ) ERC721(name_, symbol_) {
+        _maxSupply = max_supply_;
+        _baseURILocal = baseURILocal_;
+    }
 
-    emit MaxSupplyChanged(_max_supply);
-}
 ```
 
-Change the contracts max supply for its token. The input supply must be higher than zero, and higher than the current total supply.
+The constructor is overridden by all inherited child contracts.Child contracts can specify additional input parameters.
 
-# getMaxSupply
-```
-/**
- * Return the contracts max supply for the token.
- */
-function getMaxSupply() public view returns (uint256) {
-    return _max_supply;
-}
-```
-
-Returns the private member attribute _max_supply.
-
-# getTokenIdCounter
-```
-/**
-  * Get the current token id counter.
-  */
- function getTokenIdCounter() public view returns (uint256) {
-     return _token_id_counter.current();
- }
-```
-
-Returns the private member attribute _token_id_counter.
-
-# setBaseURI
-```
-/**
-  * Set the base URI for all tokens
-  * @param baseURI_ The base URI to set
-  */
- function setBaseURI(string calldata baseURI_) public onlyOwner {
-     require(bytes(baseURI_).length > 0, "BaseURI can not be empty");
-     _baseURILocal = baseURI_;
- }
-```
-Sets the baseURI string for the collection.
-
-# baseURI
-```
- /**
-  * Return the contracts baseURI
-  */
- function baseURI() public view returns (string memory) {
-     return _baseURI();
- }
-```
-Returns the overridden ERC721 _baseURI()
-
-# setTokenURI
-```
-/**
- * setTokenURI
- * @param tokenId The token to set the URI for.
- * @param tokenURI_ The URI to set.
- */
-function setTokenURI(
-    uint256 tokenId,
-    string memory tokenURI_
-) public onlyOwner {
-    _setTokenURI(tokenId, tokenURI_);
-}
-```
-Sets the URI for the individual token.
-
-# setPublicMintStatus
-```
-/**
- * Set the public minting flag.
- */
-function setPublicMintStatus(bool open_mint) public onlyOwner {
-    _public_mint_enabled = open_mint;
-}
-```
-Enables or disables the public minting status.
-This does not prevent the contract owner from minting tokens.
-
-# getPublicMintStatus
-```
- /**
-  * Get the public minting flag.
-  */
- function getPublicMintStatus() public view returns (bool) {
-     return _public_mint_enabled;
- }
-```
-Returns the private member attribute __public_mint_enabled.
-
-# mint
-```
-/**
- * Mint function, callable by any.
- */
-function mint() public virtual override whenNotPaused returns (uint256) {
-    require(_public_mint_enabled, "Public minting disabled.");
-    return _safeMint(msg.sender);
-}
-```
-The publicly accessible token minting function.
-Requires that public minting be enabled and the contract not be paused.
-Calls the _safeMint function.
-- **Note:** There is no requirement to send funds to mint. If we allow public access to our chain, or our network is penetrated and the blockchain is accessed, an address could mint all remaining tokens.
-
-# mintMany
+-------------------
+# **Functions**
+## pause
 ```
     /**
-     * Mint many, callable by any.
-     * @param amount_ The amount of tokens to mint.
+     * @dev Pauses the contract.
+     *
+     * Requirements:
+     * - The contract must not already be paused.
+     * - Can only be called by the owner of the contract.
      */
-    function mintMany(
-        uint256 amount_
-    ) public virtual override whenNotPaused returns (bytes32[] memory) {
-        require(_public_mint_enabled, "Public minting disabled.");
-        require(amount_ > 0, "Count must be greater than zero.");
-        require(
-            amount_ <= getMaxSupply() - totalSupply(),
-            "Amount exceeds max supply."
-        );
-        bytes32[] memory tokenIds = new bytes32[](amount_);
-        uint256 i = 0;
-        while (i < amount_) {
-            tokenIds[i] = bytes32(_safeMint(_msgSender()));
-            ++i;
-        }
-        return tokenIds;
+    function pause() public onlyOwner {
+        _pause();
     }
-```
-The publicly accessible token minting function, to mint more than 1.
-Calls the _safeMint function, for the input amount of times.
-- **Note:** There is no requirement to send funds to mint. If we allow public access to our chain, or our network is penetrated and the blockchain is accessed, an address could mint all remaining tokens.
-
-# mintTo
-```
-/**
- * Mint to a specific address, callable by only owner.
- */
-function mintTo(
-    address to
-) public virtual override onlyOwner returns (uint256) {
-    return _safeMint(to);
-}
-```
-An owner only callable minting function.
-This functions enables to mint tokens on demand for rewards, giveaways, challenges, etc.
-Calls the _safeMint function.
-- **Note**: There is no requirement to send funds to mint. If we allow public access to our chain, or our network is penetrated and the blockchain is accessed, an address could mint all remaining tokens.
-
-# mintToMany
-```
-    /**
-     * Mint to many addresses, callable by only owner.
-     * @param to The addresses to mint to.
-     */
-    function mintToMany(
-        address[] memory to
-    ) public override onlyOwner returns (bytes32[] memory) {
-        require(to.length > 0, "No addresses to mint to.");
-        bytes32[] memory tokenIds = new bytes32[](to.length);
-        uint256 i = 0;
-        while (i < to.length) {
-            require(to[i] != address(0), "Invalid address.");
-            tokenIds[i] = bytes32(_safeMint(to[i]));
-            i++;
-        }
-        return tokenIds;
-    }
-```
-An owner only callable minting function.
-This functions enables to mint 1 token to multiple users, on demand for rewards, giveaways, challenges, etc.
-Calls the _safeMint function.
-- **Note**: There is no requirement to send funds to mint. If we allow public access to our chain, or our network is penetrated and the blockchain is accessed, an address could mint all remaining tokens.
-
-
-# _safeMint
-```
-/**
- * Implemntation of ERC721 minting.
- */
-function _safeMint(
-    address to
-) private whenNotPaused returns (uint256 tokenId) {
-    require(
-        _token_id_counter.current() < _max_supply,
-        "Max supply reached."
-    );
-    _token_id_counter.increment();
-    tokenId = _token_id_counter.current();
-    _safeMint(to, tokenId);
-    return tokenId;
-}
-```
-A wrapper function for the implementation of OpenZeppelin's Contract Wizard ERC721 minting.
-
-# setBurnStatus
-```
-/**
- * Set the burn enabled flag.
- */
-function setBurnStatus(bool status) public onlyOwner {
-    _burn_enabled = status;
-}
-```
-Sets the burn status of the contract.
-If disabled, tokens cannot be burned by anyone, including the owner.
-
-# getBurnStatus
-```
-/**
- * Return the burn enabled flag.
- */
-function getBurnStatus() public view returns (bool) {
-    return _burn_enabled;
-}
-```
-Returns the private member attribute _burn_enabled.
-
-# burn
-```
-/**
- * Burn a token.
- */
-function burn(uint256 tokenId) public virtual whenNotPaused {
-    require(_burn_enabled, "Burn is not enabled.");
-    require(_exists(tokenId), "ERC721: token does not exist.");
-    require(
-        _isApprovedOrOwner(_msgSender(), tokenId),
-        "Ownable: Caller is not owner or approved."
-    );
-    _burn(tokenId);
-}
-```
-Burns a token.
-Requires that burning be enabled, and the contract is not paused.
-
-# pause
-```
-/**
- * Pause
- */
-function pause() public onlyOwner {
-    _pause();
-}
 ```
 Pause the contract, disabling the functions that implement Pausable.
 Does not prevent all functions in the contract.
-- **NOTE:** The contract can be rewritten to implemnt the ERC721Pausable contract, but because of the overlap with Pausable, we save some gas and space because we are not inheriting already implemented functions from ERC721Pausable and instead adding Pausables functionality manually to our functions.
 
-# unpause
+## unpause
 ```
-/**
- * Unpause
- */
-function unpause() public onlyOwner {
-    _unpause();
-}
+    /**
+     * @dev Unpauses the contract.
+     *
+     * Requirements:
+     * - The contract must be paused.
+     * - Can only be called by the owner of the contract.
+     */
+    function unpause() public onlyOwner {
+        _unpause();
+    }
 ```
 Unpauses the contract, resuming interaction for the functions that implement Pausable.
 
-# withdraw
+## mint
 ```
-/**
- * Withdraw
- */
-function withdraw() public onlyOwner {
-    uint256 balance = address(this).balance;
-    payable(msg.sender).transfer(balance);
-}
+    /**
+     * @dev Mints a new token and assigns it to the caller's address.
+     *
+     * Requirements:
+     * - Public minting must be enabled.
+     * - The contract must not be paused.
+     *
+     * @return The id of the newly minted token.
+     */
+    function mint() public virtual override returns (uint256) {
+        if (!_publicMintEnabled) revert PublicMintDisabled();
+        return uint256(clancyMint(_msgSender()));
+    }
 ```
-Withdraws any ether sent to the contract, payable to the contract owner.
+Main public minting function.
 
-# getBalance
+## setBurnStatus
 ```
-/**
- * Get the native token balance of the account.
- */
-function getBalance() external view returns (uint256) {
-    return address(this).balance;
-}
+
+    /**
+     * @dev Sets the burn status of the contract.
+     *
+     * Requirements:
+     * - Can only be called by the owner of the contract.
+     *
+     * @param status A boolean indicating whether or not burning is enabled.
+     */
+    function setBurnStatus(bool status) public onlyOwner {
+        _burnEnabled = status;
+        emit BurnStatusChanged(status);
+    }
 ```
-Returns the quantity of ether owned by the contract itself.
+Burn status is independent of pausable.
+### Examples
+- Burn Enabled, Paused
+  - Cannot burn.
+- Burn Disabled, Not Paused
+  - Cannot burn. 
+- Burn Enabled, Not Paused
+  - Can be burned.
+
+
+## burn
+```
+    /**
+     * @dev Burns a token.
+     *
+     * Requirements:
+     * - Burning must be enabled.
+     * - The token must exist.
+     * - The caller must either own the token or be approved to burn it.
+     * - The contract must not be paused.
+     *
+     * @param tokenId The ID of the token to be burned.
+     */
+    function burn(uint256 tokenId) public virtual whenNotPaused {
+        if (!_burnEnabled) revert BurnDisabled();
+        if (!_isApprovedOrOwner(_msgSender(), tokenId))
+            revert NotApprovedOrOwner();
+        _burn(tokenId);
+    }
+```
+Burn function that calls the ERC721 burn function. Not required to check isApprovedOrOwner as the ERC721 _burn function include this, but defining our own Error is better for readability and gas efficiency.
+
+## getBurnStatus
+```
+    /**
+     * @dev Returns the burn status of the contract.
+     *
+     * @return A boolean indicating whether or not burning is currently enabled.
+     */
+    function getBurnStatus() public view returns (bool) {
+        return _burnEnabled;
+    }
+```
+Gets the burn status.
+
+## setPublicMintStatus
+```
+    /**
+     * @dev Sets the public minting status of the Clancy ERC721 token.
+     *
+     * Requirements:
+     * - The caller must be the owner of the contract.
+     *
+     * @param status The new public minting status.
+     */
+    function setPublicMintStatus(bool status) public onlyOwner {
+        _publicMintEnabled = status;
+    }
+```
+Sets public mint status. Inherited contracts can still call clancyMint.
+
+## setMaxSupply
+```
+    /**
+     * @dev Sets the maximum supply of the Clancy ERC721 token.
+     *
+     * Requirements:
+     * - The caller must be the owner of the contract.
+     * - The increased supply must be greater than 0.
+     * - The increased supply must be greater than the current maximum supply.
+     * - The increased supply must not exceed the supply ceiling.
+     *
+     * Emits a {MaxSupplyChanged} event indicating the updated maximum supply.
+     *
+     * @param increasedSupply The new maximum supply.
+     */
+    function setMaxSupply(uint256 increasedSupply) public onlyOwner {
+        if (increasedSupply <= 0) revert MaxSupply_LTEZero();
+        if (increasedSupply < totalSupply())
+            revert MaxSupply_LowerThanCurrentSupply();
+        if (increasedSupply > SUPPLY_CEILING) revert MaxSupply_AboveCeiling();
+
+        _maxSupply = increasedSupply;
+
+        emit MaxSupplyChanged(increasedSupply);
+    }
+```
+Sets max supply, emits an event and has revert conditions.
+
+## setBaseURI
+```
+    /**
+     * @dev Sets the base URI for the Clancy ERC721 token metadata.
+     *
+     * Requirements:
+     * - The caller must be the owner of the contract.
+     *
+     * Emits a {BaseURIChanged} event indicating the updated base URI.
+     *
+     * @param baseURI_ The new base URI for the token metadata.
+     */
+    function setBaseURI(string calldata baseURI_) public onlyOwner {
+        string memory existingBaseURI = _baseURILocal;
+        _baseURILocal = baseURI_;
+        emit BaseURIChanged(existingBaseURI, _baseURILocal);
+    }
+```
+Sets the base uri.
+Should be an internally hosted resource.
+
+## getPublicMintStatus
+```
+    /**
+     * @dev Returns the public mint status of this contract.
+     * @return A boolean indicating whether public minting is currently enabled or disabled.
+     */
+    function getPublicMintStatus() public view returns (bool) {
+        return _publicMintEnabled;
+    }
+```
+Gets the public mint status.
+
+## baseURI
+```
+    /**
+     * @dev Returns the base URI for all tokens.
+     * @return A string representing the base URI.
+     */
+    function baseURI() public view virtual returns (string memory) {
+        return _baseURI();
+    }
+```
+Calls our defined _baseURI that overrides the default ERC721 _baseURI.
+
+## getMaxSupply
+```
+    /**
+     * @dev Returns the maximum supply for this token.
+     * @return An unsigned integer representing the maximum supply.
+     */
+    function getMaxSupply() public view returns (uint256) {
+        return _maxSupply;
+    }
+```
+Gets the max supply.
+
+## _baseURI
+```
+    /**
+     * @dev Returns the base URI for this contract.
+     * @return A string representing the base URI.
+     */
+    function _baseURI() internal view virtual override returns (string memory) {
+        return _baseURILocal;
+    }
+```
+
+## getTokenIdCounter
+```
+    /**
+     * @dev Returns the total number of tokens in existence.
+     *      Burned tokens will not reduce this number, it will only increase.
+     * @return uint256 representing the total number of tokens in existence.
+     */
+    function getTokenIdCounter() public view returns (uint256) {
+        return _tokenIdCounter.current();
+    }
+```
+Gets the token id counter.
+
+## clancyMint
+```
+    /**
+     * @dev Mints a new Clancy ERC721 token and assigns it to the specified address.
+     *
+     * Requirements:
+     * - The contract must not be paused.
+     * - The maximum supply has not been reached.
+     *
+     * @param to The address to assign the newly minted token to.
+     * @return tokenId - The ID of the newly minted token.
+     */
+    function clancyMint(
+        address to
+    ) internal whenNotPaused returns (uint256 tokenId) {
+        if (_tokenIdCounter.current() >= _maxSupply) revert MaxSupply_Reached();
+        _tokenIdCounter.increment();
+        tokenId = _tokenIdCounter.current();
+        _safeMint(to, tokenId);
+        return tokenId;
+    }
+```
