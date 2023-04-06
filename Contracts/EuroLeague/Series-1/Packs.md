@@ -1,1 +1,1 @@
-The Pack contract inherits from BaseContract721
+The Reels contract inherits from ClancyERC721.
