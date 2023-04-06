@@ -58,17 +58,29 @@ Public function for checking whether an address is a valid case contract.
      * Requirements:
      * - The contract must not be paused.
      * - The function can only be called by the Case contract.
-     *
+     * - Is NOT user callable. This is for owner intervention.
      * @return The ID of the token that was minted.
      */
-    function mint()
-        public
-        override
-        whenNotPaused
-        onlyCaseContract
-        returns (uint256)
-    {
-        return super.mint();
+    function mint() public override whenNotPaused onlyOwner returns (uint256) {
+        return super.mint();    
     }
 ```
-Overrides ClancyERC721 base minting function. Required for use of onlyCaseContract modifier.
+Overrides ClancyERC721 base minting function.
+### Notes
+- This overrides the default mint functionality and prevents it from public use. Only the owner can use this i.e. airdrops, rewards.
+
+## mintTo
+```
+    /**
+     * @notice Mints a new ERC721 token to the specified `to` address
+     * @dev Can only be called when contract is not paused and by the case contract
+     * @param to The address to mint the token to
+     * @return tokenId The ID of the newly minted token
+     */
+    function mintTo(
+        address to
+    ) public whenNotPaused onlyCaseContract returns (uint256) {
+        return clancyMint(to);
+    }
+```
+The main function used for opening cases. Required for use of onlyCaseContract modifier.
