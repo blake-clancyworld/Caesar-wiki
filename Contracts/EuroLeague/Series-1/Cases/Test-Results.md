@@ -1,99 +1,22 @@
-**Git Commit:** [8410bc05](https://spsprodcca1.vssps.visualstudio.com/_signin?realm=dev.azure.com&reply_to=https%3A%2F%2Fdev.azure.com%2Fclancyworld%2FCaesar%2F_git%2Fblockchain-contracts%2Fcommit%2F8410bc05ae98985df8a77b2bd0a389f0a117d060%3FrefName%3Drefs%252Fheads%252Fdevelop%252Fv0.1.0&redirect=1&mkt=en-CA&hid=95287c9d-8e35-4824-81c4-d847f45fdd8f&context=eyJodCI6MiwiaGlkIjoiZDc3NTVjNDktYmNmNC00MTk2LTg0OWQtZmI4YWMyYTg0MGU3IiwicXMiOnt9LCJyciI6IiIsInZoIjoiIiwiY3YiOiIiLCJjcyI6IiJ90#ctx=eyJTaWduSW5Db29raWVEb21haW5zIjpbImh0dHBzOi8vbG9naW4ubWljcm9zb2Z0b25saW5lLmNvbSIsImh0dHBzOi8vbG9naW4ubWljcm9zb2Z0b25saW5lLmNvbSJdfQ2)
-
-**Date**: 12/08/2022
+**Date**: 04/06/2023
 
 ## Notice
-Pack tests are intertwined with Moment tests. For Pack tests to be passing, all Moment tests must also be passing.
+Case tests are intertwined with Reel tests. For Reels tests to be passing, all Case tests must also be passing.
 ```
-  Pack & Moments        
-    Pack
-      setMomentsContract
-        √ should not set moments contract if not owner
-        √ should not set the contract to the zero address
-        √ should not sent the address to a non contract account
-        √ Should set the moments contract
-      getMomentsContract
-        √ should retun the zero address if not set
-        √ Should return the moments contract address
-      setMomentsPerPack
-        √ should not set moments per pack if not owner
-        √ should not set moments per pack to zero
-        √ should set moments per pack
-      getMomentsPerPack
-        √ default value should be 3
-        √ should return the moments per pack
-        √ should return 3 for both Swishn and Clutch
-      mintMany
-        √ should not mint if moments contract not set
-        √ should not mint if minting is paused
-        √ should not mint over the max_supply
-        √ should mint packs
-    Moment
-      setPackContract
-        √ should not set pack contract if not owner
-        √ should not set the contract to the zero address
-        √ should not sent the address to a non contract account
-        √ Should set the pack contract to true
-        √ should set a true contract to false
-      isPackContract
-        √ should retun the zero address if not set
-        √ Should return the pack true for a validcontract address
-    Flow of both contracts
-      √ Should mint a Clutch Pack
-      √ should not open a pack if minting is disabled, but burn is enabled
-      √ should not open a pack if minting is enabled, but burn is 
-disabled
-      √ should not open a pack if minting is enabled, and burn is 
-enabled, but moment minting is disabled
-      √ should not open a pack for the non pack owner
-      √ Should open a pack
-
-·------------------------------------|----------------------------|-------------|-----------------------------·
-|        Solc version: 0.8.17        ·  Optimizer enabled: false  
-·  Runs: 200  ·  Block limit: 30000000 gas  │
-·····································|····························|·············|······························
-|  Methods
-                                            │
-·············|·······················|··············|·············|·············|···············|··············
-|  Contract  ·  Method               ·  Min         ·  Max        
-·  Avg        ·  # calls      ·  eth (avg)  │
-·············|·······················|··············|·············|·············|···············|··············
-|  Clutch    ·  mint                 ·           -  ·          -  
-·     170626  ·           11  ·          -  │
-·············|·······················|··············|·············|·············|···············|··············
-|  Clutch    ·  mintMany             ·           -  ·          -  
-·    1228860  ·            1  ·          -  │
-·············|·······················|··············|·············|·············|···············|··············
-|  Clutch    ·  openPack             ·           -  ·          -  
-·     508348  ·            2  ·          -  │
-·············|·······················|··············|·············|·············|···············|··············
-|  Clutch    ·  setBurnStatus        ·       26290  ·      29102  
-·      28540  ·            5  ·          -  │
-·············|·······················|··············|·············|·············|···············|··············
-|  Clutch    ·  setMomentsContract   ·           -  ·          -  
-·      49127  ·           11  ·          -  │
-·············|·······················|··············|·············|·············|···············|··············
-|  Clutch    ·  setMomentsPerPack    ·           -  ·          -  
-·      28989  ·            2  ·          -  │
-·············|·······················|··············|·············|·············|···············|··············
-|  Clutch    ·  setPublicMintStatus  ·       29096  ·      29108  
-·      29107  ·            9  ·          -  │
-·············|·······················|··············|·············|·············|···············|··············
-|  Moments   ·  setPackContract      ·       27616  ·      49528  
-·      47336  ·           10  ·          -  │
-·············|·······················|··············|·············|·············|···············|··············
-|  Moments   ·  setPublicMintStatus  ·       26252  ·      46164  
-·      39527  ·            3  ·          -  │
-·············|·······················|··············|·············|·············|···············|··············
-|  Deployments                       ·
-              ·  % of limit   ·             │
-·····································|··············|·············|·············|···············|··············
-|  Clutch                            ·     5188942  ·    5188954  
-·    5188950  ·       17.3 %  ·          -  │
-·····································|··············|·············|·············|···············|··············
-|  Moments                           ·           -  ·          -  
-·    4654711  ·       15.5 %  ·          -  │
-·------------------------------------|--------------|-------------|-------------|---------------|-------------·
-
-  29 passing (7s)
+ Running 14 tests for test/Euroleague/Series1/Reels.t.sol:Reels_Test
+[PASS] testFuzz_mint(uint256) (runs: 256, μ: 773593, ~: 347218)
+[PASS] test_isCaseContract() (gas: 9999)
+[PASS] test_isCaseContract_whenCaseContract() (gas: 37740)
+[PASS] test_mint_1() (gas: 211001)
+[PASS] test_mint_100() (gas: 12655518)
+[PASS] test_mint_101() (gas: 12004283)
+[PASS] test_mint_fromNonCaseContract_ShouldRevert() (gas: 38244)
+[PASS] test_mint_whenPublicMintIsDisabledAndNotPaused_ShouldPass() (gas: 45484)
+[PASS] test_mint_whenPublicMintIsEnabledAndPaused_ShouldRevert() (gas: 88238)
+[PASS] test_setCaseContract() (gas: 37762)
+[PASS] test_setCaseContractAsNonOwner_ShouldRevert() (gas: 13413)
+[PASS] test_setCaseContract_AsEOA_ShouldRevert() (gas: 13509)
+[PASS] test_setCaseContract_AsZeroAddress_ShouldRevert() (gas: 10852)
+[PASS] test_setCaseContract_setExisingTrueToFalse_ShouldPass() (gas: 29644)
+Test result: ok. 14 passed; 0 failed; finished in 95.92ms
 ```
