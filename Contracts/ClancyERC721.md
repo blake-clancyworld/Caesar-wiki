@@ -2,31 +2,46 @@
 The basis from which all ERC721 standard Clancy World tokens are sourced from.
 # IClancyERC721
 An interface contract, meaning it has no body, but contains empty functions that have their bodies filled out in the contracts that inherit from it. Only ClancyERC721 should inherit from this contract interface directly.
+
 ## Functions
 **mint()**
-- The basic token creation and "minting" functionality to be interacted with by users.
+- The basic token creation functionality to be interacted with by users.
 - Returns the token id.
-
-**mintTo(address to_)**
-- The basic token creation and "minting" functionality, only able to be interacted with by the contract owner.
-- The owner of the contract must include the recieving address for the token in this function call.
 
 ## Code
 ```
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.17;
+pragma solidity ^0.8.19;
 
 interface IClancyERC721 {
-    function mint() external returns (uint256);
+    // Errors
+    error PublicMintDisabled();
+    error BurnDisabled();
+    error NotApprovedOrOwner();
+    error MaxSupply_AboveCeiling();
+    error MaxSupply_CannotBeDecreased();
+    error MaxSupply_LowerThanCurrentSupply();
+    error MaxSupply_LTEZero();
+    error MaxSupply_Reached();
 
-    function mintTo(address to_) external returns (uint256);
+    // Events
+    event MaxSupplyChanged(uint256 indexed);
+    event BaseURIChanged(string indexed, string indexed);
+    event BurnStatusChanged(bool indexed);
+
+    // Functions
+    function mint() external returns (uint256);
 }
+
 ```
 
 # ClancyERC721
 The foundation of all ClancyWorld's ERC721 tokens.
-This contract implements ERC721URIStorage, ERC721Enumerable, ReentrancyGuard, Ownable, Pausable, IERC721Receiver, and IClancyERC721
-
+This contract implements     Ownable,
+    ERC721Enumerable,
+    Pausable,
+    IClancyERC721,
+    IERC721Receiver
 ## ERC721URIStorage
 ERC721 token with storage based token URI management.
 
