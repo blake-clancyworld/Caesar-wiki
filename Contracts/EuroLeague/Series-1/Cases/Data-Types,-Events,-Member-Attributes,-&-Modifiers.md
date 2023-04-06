@@ -1,27 +1,32 @@
-# Data Types
-The contract uses Open Zeppelins library for Address.
-using Address for address;
+# Raw Code
+```
+// SPDX-License-Identifier: None
+pragma solidity ^0.8.19;
 
-# Events
-## PackOpened
-```
-event PackOpened(uint256 tokenId, address pack);
-```
-Emitted when a pack is opened and moments are minted.
+interface IReels {
+    error NotCaseContract();
+    error CaseContractInvalid();
 
-# Member Attributes
-## _momentsContract
+    event CaseContractSet(address indexed, bool indexed);
+}
 ```
-Moments private _momentsContract;
+---
+## Errors
+### NotCaseContract
 ```
-The _momentsContract stores a reference to the Moments contract to be used for minting moments.
+error NotCaseContract();
+```
+Emitted when the modifier onlyCaseContract() is checked and does not match.
 
-## _moments_per_pack
+### CaseContractInvalid
 ```
-uint256 private _moments_per_pack = 3;
+error CaseContractInvalid();
 ```
-The quantity of moments to be minted when a pack is burned.
-By default, all pack contracts will mint 3 packs - this can be raised or lowered after contract creation.
+Emitted during setCaseContract when the input address is not a contract, or is the zero address.
 
-# Modifiers
-None
+--------
+## Events
+```
+event CaseContractSet(address indexed, bool indexed);
+```
+Emitted when the CaseContract is set.
