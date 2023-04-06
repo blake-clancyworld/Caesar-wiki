@@ -2,293 +2,83 @@ Last Updated: February 12, 2023
 # IClancyERC721.sol
 ```
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.17;
+pragma solidity ^0.8.19;
 
 interface IClancyERC721 {
+    // Errors
+    error PublicMintDisabled();
+    error BurnDisabled();
+    error NotApprovedOrOwner();
+    error MaxSupply_AboveCeiling();
+    error MaxSupply_CannotBeDecreased();
+    error MaxSupply_LowerThanCurrentSupply();
+    error MaxSupply_LTEZero();
+    error MaxSupply_Reached();
+
+    // Events
+    event MaxSupplyChanged(uint256 indexed);
+    event BaseURIChanged(string indexed, string indexed);
+    event BurnStatusChanged(bool indexed);
+
+    // Functions
     function mint() external returns (uint256);
-
-    function mintMany(uint256 amount_) external returns (bytes32[] memory);
-
-    function mintTo(address to_) external returns (uint256);
-
-    function mintToMany(
-        address[] memory _to
-    ) external returns (bytes32[] memory);
 }
 ```
 
 # ClancyERC721.sol
 ````
-/// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.17;
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.19;
 
-import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/security/Pausable.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
-import "./IClancyERC721.sol";
+import {Counters} from "openzeppelin-contracts/contracts/utils/Counters.sol";
+import {Pausable} from "openzeppelin-contracts/contracts/security/Pausable.sol";
+import {IERC721Receiver} from "openzeppelin-contracts/contracts/token/ERC721/IERC721Receiver.sol";
+import {ERC721, ERC721Enumerable} from "openzeppelin-contracts/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+
+import {Ownable} from "openzeppelin-contracts/contracts/access/Ownable.sol";
+
+import {IClancyERC721} from "./IClancyERC721.sol";
 
 contract ClancyERC721 is
-    ERC721URIStorage,
-    ERC721Enumerable,
-    ReentrancyGuard,
     Ownable,
+    ERC721Enumerable,
     Pausable,
-    IERC721Receiver,
-    IClancyERC721
+    IClancyERC721,
+    IERC721Receiver
 {
     using Counters for Counters.Counter;
-    using Address for address;
-    Counters.Counter internal _token_id_counter;
 
-    uint256 private _max_supply;
-    string private _baseURILocal;
-    bool private _burn_enabled = false;
-    bool private _public_mint_enabled = false;
-    uint128 private _mint_many_limit = 20;
+    /// @dev A counter for tracking the token ID
+    Counters.Counter internal _tokenIdCounter;
 
-    event MaxSupplyChanged(uint256);
-    event BaseURIChanged(string, string);
-    event BurnStatusChanged(bool);
-    event Withdrawn(address, uint256);
-    event PublicMintStatusChanged(bool);
-    event MintManyLimitChanged(uint128);
+    /// @dev A base URI for metadata of the token, to be concatenated with the token ID
+    string internal _baseURILocal;
+
+    /// @dev The maximum supply of the token
+    uint256 internal _maxSupply;
+
+    /// @dev The ceiling for the total supply of the token
+    uint256 public constant SUPPLY_CEILING = 1_000_000;
+
+    /// @dev A flag for enabling or disabling public minting
+    bool private _publicMintEnabled = false;
+
+    /// @dev A flag for enabling or disabling burning of tokens
+    bool private _burnEnabled = false;
 
     constructor(
         string memory name_,
         string memory symbol_,
-        string memory baseURI_,
-        uint256 max_supply_
+        uint256 max_supply_,
+        string memory baseURILocal_
     ) ERC721(name_, symbol_) {
-        require(bytes(name_).length > 0, "Name cannot be empty.");
-        require(bytes(symbol_).length > 0, "Symbol cannot be empty.");
-        require(bytes(baseURI_).length > 0, "BaseURI cannot be empty.");
-        require(max_supply_ > 0, "Max supply cannot be zero.");
-        _max_supply = max_supply_;
-        _baseURILocal = baseURI_;
+        _maxSupply = max_supply_;
+        _baseURILocal = baseURILocal_;
     }
 
     /**
-     * Set max supply to the input value.
-     * Cannot be lower than the current total supply.
-     * @param supply The value to set the max supply to.
+     * @dev See {IERC721Receiver-onERC721Received}.
      */
-    function setMaxSupply(uint256 supply) public onlyOwner {
-        require(supply > 0, "Max supply cannot be zero.");
-        require(
-            supply >= totalSupply(),
-            "Max supply cannot be less than total supply."
-        );
-        _max_supply = supply;
-        emit MaxSupplyChanged(_max_supply);
-    }
-
-    /**
-     * Return the contracts max supply for the token.
-     */
-    function getMaxSupply() public view returns (uint256) {
-        return _max_supply;
-    }
-
-    /**
-     * Get the current token id counter.
-     */
-    function getTokenIdCounter() public view returns (uint256) {
-        return _token_id_counter.current();
-    }
-
-    /**
-     * Set the base URI for all tokens
-     * @param baseURI_ The base URI to set
-     */
-    function setBaseURI(string calldata baseURI_) public onlyOwner {
-        require(bytes(baseURI_).length > 0, "BaseURI can not be empty");
-        emit BaseURIChanged(_baseURILocal, baseURI_);
-        _baseURILocal = baseURI_;
-    }
-
-    /**
-     * Return the contracts baseURI
-     */
-    function baseURI() public view returns (string memory) {
-        return _baseURI();
-    }
-
-    /**
-     * setTokenURI
-     * @param tokenId The token to set the URI for.
-     * @param tokenURI_ The URI to set.
-     */
-    function setTokenURI(
-        uint256 tokenId,
-        string memory tokenURI_
-    ) public onlyOwner {
-        _setTokenURI(tokenId, tokenURI_);
-    }
-
-    /**
-     * Set the public minting flag.
-     */
-    function setPublicMintStatus(bool open_mint) public onlyOwner {
-        _public_mint_enabled = open_mint;
-        emit PublicMintStatusChanged(_public_mint_enabled);
-    }
-
-    /**
-     * Get the public minting flag.
-     */
-    function getPublicMintStatus() public view returns (bool) {
-        return _public_mint_enabled;
-    }
-
-    /**
-     * Set the _mint_many_max value.
-     */
-    function setMintManyMax(uint128 max) public onlyOwner {
-        _mint_many_limit = max;
-        emit MintManyLimitChanged(_mint_many_limit);
-    }
-
-    /**
-     * Mint function, callable by any.
-     */
-    function mint() public virtual override whenNotPaused returns (uint256) {
-        require(_public_mint_enabled, "Public minting disabled.");
-        return _safeMint(_msgSender());
-    }
-
-    /**
-     * Mint many, callable by any.
-     * @param amount_ The amount of tokens to mint.
-     */
-    function mintMany(
-        uint256 amount_
-    ) public virtual override whenNotPaused returns (bytes32[] memory) {
-        require(_public_mint_enabled, "Public minting disabled.");
-        require(amount_ > 0, "Count must be greater than zero.");
-        require(amount_ <= _mint_many_limit, "Amount exceeds mint limit.");
-        require(
-            amount_ <= getMaxSupply() - totalSupply(),
-            "Amount exceeds max supply."
-        );
-        bytes32[] memory tokenIds = new bytes32[](amount_);
-        uint256 i = 0;
-        while (i < amount_) {
-            tokenIds[i] = bytes32(_safeMint(_msgSender()));
-            ++i;
-        }
-        return tokenIds;
-    }
-
-    /**
-     * Mint to a specific address, callable by only owner.
-     */
-    function mintTo(address to) public override onlyOwner returns (uint256) {
-        return _safeMint(to);
-    }
-
-    /**
-     * Mint to many addresses, callable by only owner.
-     * @param to The addresses to mint to.
-     */
-    function mintToMany(
-        address[] memory to
-    ) public override onlyOwner returns (bytes32[] memory) {
-        require(to.length > 0, "No addresses to mint to.");
-        bytes32[] memory tokenIds = new bytes32[](to.length);
-        uint256 i = 0;
-        while (i < to.length) {
-            require(to[i] != address(0), "Invalid address.");
-            tokenIds[i] = bytes32(_safeMint(to[i]));
-            i++;
-        }
-        return tokenIds;
-    }
-
-    /**
-     * Implemntation of ERC721 minting.
-     */
-    function _safeMint(
-        address to
-    ) private whenNotPaused returns (uint256 tokenId) {
-        require(
-            _token_id_counter.current() < _max_supply,
-            "Max supply reached."
-        );
-        _token_id_counter.increment();
-        tokenId = _token_id_counter.current();
-        _safeMint(to, tokenId);
-        return tokenId;
-    }
-
-    /**
-     * Set the burn enabled flag.
-     */
-    function setBurnStatus(bool status) public onlyOwner {
-        _burn_enabled = status;
-        emit BurnStatusChanged(_burn_enabled);
-    }
-
-    /**
-     * Return the burn enabled flag.
-     */
-    function getBurnStatus() public view returns (bool) {
-        return _burn_enabled;
-    }
-
-    /**
-     * Burn a token.
-     */
-    function burn(uint256 tokenId) public virtual whenNotPaused {
-        require(_burn_enabled, "Burn is not enabled.");
-        require(_exists(tokenId), "ERC721: token does not exist.");
-        require(
-            _isApprovedOrOwner(_msgSender(), tokenId),
-            "Ownable: Caller is not owner or approved."
-        );
-        _burn(tokenId);
-    }
-
-    /**
-     * Pause
-     */
-    function pause() public onlyOwner {
-        _pause();
-    }
-
-    /**
-     * Unpause
-     */
-    function unpause() public onlyOwner {
-        _unpause();
-    }
-
-    /**
-     * Fallback Recieve function
-     */
-    receive() external payable {}
-
-    /**
-     * Withdraw
-     */
-    function withdraw() public onlyOwner {
-        uint256 balance = address(this).balance;
-        payable(_msgSender()).transfer(balance);
-        emit Withdrawn(_msgSender(), balance);
-    }
-
-    /**
-     * Get the native token balance of the account.
-     */
-    function getBalance() external view returns (uint256) {
-        return address(this).balance;
-    }
-
-    //#region Interface Implementation
     function onERC721Received(
         address,
         address,
@@ -298,40 +88,193 @@ contract ClancyERC721 is
         return this.onERC721Received.selector;
     }
 
-    //#endregion
+    /**
+     * @dev Pauses the contract.
+     *
+     * Requirements:
+     * - The contract must not already be paused.
+     * - Can only be called by the owner of the contract.
+     */
+    function pause() public onlyOwner {
+        _pause();
+    }
 
-    //#region Overrides
-    function _baseURI() internal view override returns (string memory) {
+    /**
+     * @dev Unpauses the contract.
+     *
+     * Requirements:
+     * - The contract must be paused.
+     * - Can only be called by the owner of the contract.
+     */
+    function unpause() public onlyOwner {
+        _unpause();
+    }
+
+    /**
+     * @dev Mints a new token and assigns it to the caller's address.
+     *
+     * Requirements:
+     * - Public minting must be enabled.
+     * - The contract must not be paused.
+     *
+     * @return The id of the newly minted token.
+     */
+    function mint() public virtual override returns (uint256) {
+        if (!_publicMintEnabled) revert PublicMintDisabled();
+        return uint256(clancyMint(_msgSender()));
+    }
+
+    /**
+     * @dev Sets the burn status of the contract.
+     *
+     * Requirements:
+     * - Can only be called by the owner of the contract.
+     *
+     * @param status A boolean indicating whether or not burning is enabled.
+     */
+    function setBurnStatus(bool status) public onlyOwner {
+        _burnEnabled = status;
+        emit BurnStatusChanged(status);
+    }
+
+    /**
+     * @dev Burns a token.
+     *
+     * Requirements:
+     * - Burning must be enabled.
+     * - The token must exist.
+     * - The caller must either own the token or be approved to burn it.
+     * - The contract must not be paused.
+     *
+     * @param tokenId The ID of the token to be burned.
+     */
+    function burn(uint256 tokenId) public virtual whenNotPaused {
+        if (!_burnEnabled) revert BurnDisabled();
+        if (!_isApprovedOrOwner(_msgSender(), tokenId))
+            revert NotApprovedOrOwner();
+        _burn(tokenId);
+    }
+
+    /**
+     * @dev Returns the burn status of the contract.
+     *
+     * @return A boolean indicating whether or not burning is currently enabled.
+     */
+    function getBurnStatus() public view returns (bool) {
+        return _burnEnabled;
+    }
+
+    /**
+     * @dev Sets the public minting status of the Clancy ERC721 token.
+     *
+     * Requirements:
+     * - The caller must be the owner of the contract.
+     *
+     * @param status The new public minting status.
+     */
+    function setPublicMintStatus(bool status) public onlyOwner {
+        _publicMintEnabled = status;
+    }
+
+    /**
+     * @dev Sets the maximum supply of the Clancy ERC721 token.
+     *
+     * Requirements:
+     * - The caller must be the owner of the contract.
+     * - The increased supply must be greater than 0.
+     * - The increased supply must be greater than the current maximum supply.
+     * - The increased supply must not exceed the supply ceiling.
+     *
+     * Emits a {MaxSupplyChanged} event indicating the updated maximum supply.
+     *
+     * @param increasedSupply The new maximum supply.
+     */
+    function setMaxSupply(uint256 increasedSupply) public onlyOwner {
+        if (increasedSupply <= 0) revert MaxSupply_LTEZero();
+        if (increasedSupply < totalSupply())
+            revert MaxSupply_LowerThanCurrentSupply();
+        if (increasedSupply > SUPPLY_CEILING) revert MaxSupply_AboveCeiling();
+
+        _maxSupply = increasedSupply;
+
+        emit MaxSupplyChanged(increasedSupply);
+    }
+
+    /**
+     * @dev Sets the base URI for the Clancy ERC721 token metadata.
+     *
+     * Requirements:
+     * - The caller must be the owner of the contract.
+     *
+     * Emits a {BaseURIChanged} event indicating the updated base URI.
+     *
+     * @param baseURI_ The new base URI for the token metadata.
+     */
+    function setBaseURI(string calldata baseURI_) public onlyOwner {
+        string memory existingBaseURI = _baseURILocal;
+        _baseURILocal = baseURI_;
+        emit BaseURIChanged(existingBaseURI, _baseURILocal);
+    }
+
+    /**
+     * @dev Returns the public mint status of this contract.
+     * @return A boolean indicating whether public minting is currently enabled or disabled.
+     */
+    function getPublicMintStatus() public view returns (bool) {
+        return _publicMintEnabled;
+    }
+
+    /**
+     * @dev Returns the base URI for all tokens.
+     * @return A string representing the base URI.
+     */
+    function baseURI() public view virtual returns (string memory) {
+        return _baseURI();
+    }
+
+    /**
+     * @dev Returns the maximum supply for this token.
+     * @return An unsigned integer representing the maximum supply.
+     */
+    function getMaxSupply() public view returns (uint256) {
+        return _maxSupply;
+    }
+
+    /**
+     * @dev Returns the base URI for this contract.
+     * @return A string representing the base URI.
+     */
+    function _baseURI() internal view virtual override returns (string memory) {
         return _baseURILocal;
     }
 
-    function tokenURI(
-        uint256 tokenId
-    ) public view override(ERC721, ERC721URIStorage) returns (string memory) {
-        return super.tokenURI(tokenId);
+    /**
+     * @dev Returns the total number of tokens in existence.
+     *      Burned tokens will not reduce this number, it will only increase.
+     * @return uint256 representing the total number of tokens in existence.
+     */
+    function getTokenIdCounter() public view returns (uint256) {
+        return _tokenIdCounter.current();
     }
 
-    function _burn(
-        uint256 tokenId
-    ) internal override(ERC721, ERC721URIStorage) {
-        super._burn(tokenId);
+    /**
+     * @dev Mints a new Clancy ERC721 token and assigns it to the specified address.
+     *
+     * Requirements:
+     * - The contract must not be paused.
+     * - The maximum supply has not been reached.
+     *
+     * @param to The address to assign the newly minted token to.
+     * @return tokenId - The ID of the newly minted token.
+     */
+    function clancyMint(
+        address to
+    ) internal whenNotPaused returns (uint256 tokenId) {
+        if (_tokenIdCounter.current() >= _maxSupply) revert MaxSupply_Reached();
+        _tokenIdCounter.increment();
+        tokenId = _tokenIdCounter.current();
+        _safeMint(to, tokenId);
+        return tokenId;
     }
-
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 tokenId,
-        uint256 batchSize
-    ) internal override(ERC721, ERC721Enumerable) whenNotPaused {
-        super._beforeTokenTransfer(from, to, tokenId, batchSize);
-    }
-
-    function supportsInterface(
-        bytes4 interfaceId
-    ) public view override(ERC721, ERC721Enumerable) returns (bool) {
-        return super.supportsInterface(interfaceId);
-    }
-    //#endregion
 }
-
 ```
