@@ -1,1 +1,1 @@
-The Cases contract inherits from ClancyERC721.
+The Reels contract inherits from ClancyERC721.
