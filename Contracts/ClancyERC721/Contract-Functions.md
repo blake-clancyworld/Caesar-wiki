@@ -263,6 +263,7 @@ Gets the max supply.
         return _baseURILocal;
     }
 ```
+Overrides ERC721s function.
 
 ## getTokenIdCounter
 ```
