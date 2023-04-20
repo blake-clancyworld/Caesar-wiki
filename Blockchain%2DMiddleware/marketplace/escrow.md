@@ -1,3 +1,18 @@
+# create
+Route: sentinel/marketplace/escrow/create
+Authorization: user
+Body:
+```
+{
+    "data": {
+        "token": {
+            "contractName": "Clutch",
+            "tokenId": 5
+        }
+    }
+}
+```
+
 # cancelItem
 Route: sentinel/marketplace/escrow/cancel
 Authorization: User
