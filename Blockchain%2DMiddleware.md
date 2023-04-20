@@ -7,6 +7,8 @@ All routes require the three following header parameters.
 | x-clancy-client | [euroleague] |
 | x-clancy-env | [dev/qa/uat] |
 
+The wiki page for each paths will specify which type of Authorization should be supplied.
+
 
 
 # Postman Export
